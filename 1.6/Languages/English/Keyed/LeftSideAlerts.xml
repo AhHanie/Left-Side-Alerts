@@ -2,4 +2,12 @@
 <LanguageData>
   <LeftSideAlerts.SettingsTitle>Left Side Alerts</LeftSideAlerts.SettingsTitle>
   <LeftSideAlerts.LeftOffsetLabel>Left offset (px): {0}</LeftSideAlerts.LeftOffsetLabel>
+  <LeftSideAlerts.StartYOffsetLabel>Start Y offset (px): {0}</LeftSideAlerts.StartYOffsetLabel>
+  <LeftSideAlerts.LetterScaleLabel>Letter size (%): {0}</LeftSideAlerts.LetterScaleLabel>
+  <LeftSideAlerts.FontModeLabel>Font size: {0}</LeftSideAlerts.FontModeLabel>
+  <LeftSideAlerts.FontModeAuto>Auto</LeftSideAlerts.FontModeAuto>
+  <LeftSideAlerts.FontModeTiny>Tiny</LeftSideAlerts.FontModeTiny>
+  <LeftSideAlerts.FontModeSmall>Small</LeftSideAlerts.FontModeSmall>
+  <LeftSideAlerts.FontModeMedium>Medium</LeftSideAlerts.FontModeMedium>
+  <LeftSideAlerts.ResetDefaults>Reset to defaults</LeftSideAlerts.ResetDefaults>
 </LanguageData>
