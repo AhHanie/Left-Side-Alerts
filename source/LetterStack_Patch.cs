@@ -55,6 +55,7 @@ namespace Left_Side_Alerts
             });
 
             bool inserted = false;
+            bool bounceDirectionFlipped = false;
             int grayIndex = -1;
             for (int i = 0; i < list.Count; i++)
             {
@@ -64,6 +65,43 @@ namespace Left_Side_Alerts
                 {
                     grayIndex = i;
                     break;
+                }
+            }
+
+            MethodInfo rectGetX = AccessTools.PropertyGetter(typeof(Rect), "x")
+                ?? AccessTools.Method(typeof(Rect), "get_x");
+            MethodInfo rectSetX = AccessTools.PropertySetter(typeof(Rect), "x")
+                ?? AccessTools.Method(typeof(Rect), "set_x");
+            if (rectGetX != null && rectSetX != null)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i].opcode != OpCodes.Call
+                        || !(list[i].operand is MethodInfo method)
+                        || method != rectGetX)
+                    {
+                        continue;
+                    }
+
+                    int searchEnd = Mathf.Min(i + 8, list.Count);
+                    for (int j = i + 1; j < searchEnd; j++)
+                    {
+                        if (list[j].opcode == OpCodes.Call
+                            && list[j].operand is MethodInfo setMethod
+                            && setMethod == rectSetX
+                            && j > i + 1
+                            && list[j - 1].opcode == OpCodes.Sub)
+                        {
+                            list[j - 1] = new CodeInstruction(OpCodes.Add);
+                            bounceDirectionFlipped = true;
+                            break;
+                        }
+                    }
+
+                    if (bounceDirectionFlipped)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -135,6 +173,15 @@ namespace Left_Side_Alerts
                 else
                 {
                     Logger.Error("Letter.DrawButtonAt label clamp injection failed.");
+                }
+
+                if (bounceDirectionFlipped)
+                {
+                    Logger.Message("Letter.DrawButtonAt bounce direction flipped to the right.");
+                }
+                else
+                {
+                    Logger.Error("Letter.DrawButtonAt bounce direction flip failed.");
                 }
 
                 if (heightReplacements > 0)
@@ -558,6 +605,11 @@ namespace Left_Side_Alerts
     [HarmonyPatch(typeof(Verse.LetterStack), "LettersOnGUI")]
     internal static class LetterStack_LettersOnGUI_Patch
     {
+        public static void Prefix(float baseY)
+        {
+            LetterStackBaseYCapture.Capture(baseY);
+        }
+
         public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             List<CodeInstruction> list = new List<CodeInstruction>(instructions);
@@ -643,6 +695,130 @@ namespace Left_Side_Alerts
         private static float GetLetterSlotHeight()
         {
             return GetLetterButtonHeight() + GetLetterSpacing();
+        }
+    }
+
+    internal static class LetterStackBaseYCapture
+    {
+        private static float lastBaseY;
+        private static bool hasValue;
+
+        public static void Capture(float baseY)
+        {
+            lastBaseY = baseY;
+            hasValue = true;
+        }
+
+        public static bool TryGet(out float baseY)
+        {
+            baseY = lastBaseY;
+            return hasValue;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class AlertsReadout_AlertsReadoutOnGUI_Patch
+    {
+        public static MethodBase TargetMethod()
+        {
+            System.Type alertsReadoutType = AccessTools.TypeByName("RimWorld.AlertsReadout")
+                ?? AccessTools.TypeByName("AlertsReadout");
+            MethodBase method = alertsReadoutType != null
+                ? AccessTools.Method(alertsReadoutType, "AlertsReadoutOnGUI")
+                : null;
+
+            if (method == null)
+            {
+                Logger.Error("AlertsReadout.AlertsReadoutOnGUI not found; patch failed.");
+            }
+
+            return method;
+        }
+
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            List<CodeInstruction> list = new List<CodeInstruction>(instructions);
+            MethodInfo findLetterStackGetter = AccessTools.PropertyGetter(typeof(Find), "LetterStack")
+                ?? AccessTools.Method(typeof(Find), "get_LetterStack");
+            MethodInfo getUnshiftedLastTopY = AccessTools.Method(
+                typeof(AlertsReadout_AlertsReadoutOnGUI_Patch),
+                nameof(GetUnshiftedLastTopY));
+
+            int topYReplacements = 0;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (!TryGetCalledMethod(list[i], out MethodInfo calledMethod))
+                {
+                    continue;
+                }
+
+                if (calledMethod.DeclaringType == typeof(LetterStack)
+                    && calledMethod.Name == "get_LastTopY"
+                    && calledMethod.ReturnType == typeof(float)
+                    && calledMethod.GetParameters().Length == 0
+                    && i > 0
+                    && IsFindLetterStackGetter(list[i - 1], findLetterStackGetter))
+                {
+                    list[i] = new CodeInstruction(OpCodes.Call, getUnshiftedLastTopY);
+                    topYReplacements++;
+                }
+            }
+
+            if (!Letter_Transpiler_Util.LoggedContains("AlertsReadout.AlertsReadoutOnGUI:LetterStack"))
+            {
+                Letter_Transpiler_Util.LoggedAdd("AlertsReadout.AlertsReadoutOnGUI:LetterStack");
+
+                if (topYReplacements > 0)
+                {
+                    Logger.Message("AlertsReadout.AlertsReadoutOnGUI start Y anchored to captured LetterStack baseY.");
+                }
+                else
+                {
+                    Logger.Error("AlertsReadout.AlertsReadoutOnGUI baseY anchor patch failed.");
+                }
+            }
+
+            return list;
+        }
+
+        private static float GetUnshiftedLastTopY(LetterStack stack)
+        {
+            if (LetterStackBaseYCapture.TryGet(out float baseY))
+            {
+                return baseY;
+            }
+
+            // Fallback for the first frame before Prefix capture runs.
+            return stack.LastTopY - ModSettings.StartYOffset;
+        }
+
+        private static bool IsFindLetterStackGetter(CodeInstruction instruction, MethodInfo findLetterStackGetter)
+        {
+            if (!TryGetCalledMethod(instruction, out MethodInfo calledMethod))
+            {
+                return false;
+            }
+
+            if (findLetterStackGetter != null && calledMethod == findLetterStackGetter)
+            {
+                return true;
+            }
+
+            return calledMethod.DeclaringType == typeof(Find)
+                && calledMethod.Name == "get_LetterStack";
+        }
+
+        private static bool TryGetCalledMethod(CodeInstruction instruction, out MethodInfo method)
+        {
+            method = null;
+            if (instruction.opcode != OpCodes.Call && instruction.opcode != OpCodes.Callvirt)
+            {
+                return false;
+            }
+
+            method = instruction.operand as MethodInfo;
+            return method != null;
         }
     }
 
