@@ -786,7 +786,7 @@ namespace Left_Side_Alerts
         {
             if (LetterStackBaseYCapture.TryGet(out float baseY))
             {
-                return baseY;
+                return baseY + 10f;
             }
 
             // Fallback for the first frame before Prefix capture runs.
