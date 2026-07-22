@@ -10,7 +10,7 @@ namespace Left_Side_Alerts
     [HarmonyPatch]
     internal static class Letter_DrawButtonAt_Patch
     {
-        private static bool loggedClampInsert;
+        private static bool loggedLabelPositionInsert;
 
         public static MethodBase TargetMethod()
         {
@@ -144,7 +144,7 @@ namespace Left_Side_Alerts
                 {
                     Letter_Transpiler_Util.MakeLdloca(vector2Local.Value),
                     Letter_Transpiler_Util.MakeLdloc(labelWidthLocal.Value),
-                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Letter_DrawButtonAt_Patch), nameof(ClampLabelPosition)))
+                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Letter_DrawButtonAt_Patch), nameof(AdjustLabelPosition)))
                 });
                 inserted = true;
             }
@@ -163,16 +163,16 @@ namespace Left_Side_Alerts
                 }
             }
 
-            if (!loggedClampInsert)
+            if (!loggedLabelPositionInsert)
             {
-                loggedClampInsert = true;
+                loggedLabelPositionInsert = true;
                 if (inserted)
                 {
-                    Logger.Message("Letter.DrawButtonAt label clamp injected.");
+                    Logger.Message("Letter.DrawButtonAt label position adjustment injected.");
                 }
                 else
                 {
-                    Logger.Error("Letter.DrawButtonAt label clamp injection failed.");
+                    Logger.Error("Letter.DrawButtonAt label position adjustment injection failed.");
                 }
 
                 if (bounceDirectionFlipped)
@@ -251,8 +251,9 @@ namespace Left_Side_Alerts
             return list;
         }
 
-        private static void ClampLabelPosition(ref Vector2 position, float labelWidth)
+        private static void AdjustLabelPosition(ref Vector2 position, float labelWidth)
         {
+            position.x += ModSettings.TextOffset;
             float halfWidth = labelWidth * 0.5f;
             float minX = halfWidth + 2f;
             if (position.x < minX)
@@ -303,7 +304,7 @@ namespace Left_Side_Alerts
             Text.Font = previous;
         }
 
-        // Label clamp injected directly before label background draw.
+        // Label position adjustment injected directly before label background draw.
     }
 
     [HarmonyPatch]
@@ -939,7 +940,7 @@ namespace Left_Side_Alerts
             return new CodeInstruction(OpCodes.Stloc, index);
         }
 
-        // Label clamp helper removed in favor of direct injection.
+        // Label position adjustment helper removed in favor of direct injection.
 
         public static bool IsLdcI4(CodeInstruction instruction)
         {

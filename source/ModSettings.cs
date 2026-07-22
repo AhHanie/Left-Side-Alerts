@@ -8,11 +8,13 @@ namespace Left_Side_Alerts
         public const float DefaultStartYOffset = 0f;
         public const float DefaultLetterScale = 1f;
         public const int DefaultFontMode = 0;
+        public const float DefaultTextOffset = 0f;
 
         public static float LeftOffset = DefaultLeftOffset;
         public static float StartYOffset = DefaultStartYOffset;
         public static float LetterScale = DefaultLetterScale;
         public static int FontMode = DefaultFontMode;
+        public static float TextOffset = DefaultTextOffset;
 
         public override void ExposeData()
         {
@@ -20,6 +22,7 @@ namespace Left_Side_Alerts
             Scribe_Values.Look(ref StartYOffset, "StartYOffset", DefaultStartYOffset);
             Scribe_Values.Look(ref LetterScale, "LetterScale", DefaultLetterScale);
             Scribe_Values.Look(ref FontMode, "FontMode", DefaultFontMode);
+            Scribe_Values.Look(ref TextOffset, "TextOffset", DefaultTextOffset);
         }
 
         public static void ResetToDefaults()
@@ -28,6 +31,7 @@ namespace Left_Side_Alerts
             StartYOffset = DefaultStartYOffset;
             LetterScale = DefaultLetterScale;
             FontMode = DefaultFontMode;
+            TextOffset = DefaultTextOffset;
         }
 
         public static GameFont GetLetterFont()

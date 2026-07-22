@@ -15,6 +15,11 @@ namespace Left_Side_Alerts
 
             listing.GapLine();
 
+            listing.Label("LeftSideAlerts.TextOffsetLabel".Translate(ModSettings.TextOffset.ToString("0")));
+            ModSettings.TextOffset = listing.Slider(ModSettings.TextOffset, 0f, 500f);
+
+            listing.GapLine();
+
             listing.Label("LeftSideAlerts.StartYOffsetLabel".Translate(ModSettings.StartYOffset.ToString("0")));
             ModSettings.StartYOffset = listing.Slider(ModSettings.StartYOffset, -500f, 500f);
 
